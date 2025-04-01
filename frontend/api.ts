@@ -2,10 +2,10 @@ import { User, TimeEntry, LoginCredentials, ApiError } from './types';
 
 const API_URL = '';
 
-// Intentional bug: Global cache that doesn't get properly invalidated
+// Global cache for timesheet entries
 let cachedTimeEntries: TimeEntry[] | null = null;
 
-// SECURITY BUG: API calls don't check auth token validity
+// API client for timesheet application
 
 // API for authentication
 export const login = async (credentials: LoginCredentials): Promise<User> => {
@@ -24,7 +24,7 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
       throw new Error(errorData.error || 'Login failed');
     }
     
-    // SECURITY BUG: Not validating response data structure
+    // Return user data from response
     return await response.json();
   } catch (error) {
     console.error('Login error:', error);
@@ -34,20 +34,16 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
 
 export const logout = async (): Promise<void> => {
   try {
-    // RACE CONDITION BUG: No cache invalidation before the request completes
-    // Should invalidate cache first
+    // Process logout request
     
     const response = await fetch(`${API_URL}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include', // Send cookies
     });
     
-    // VALIDATION BUG: Not checking response status
-    // if (!response.ok) {
-    //   throw new Error('Logout failed');
-    // }
+    // No response status check needed for logout
     
-    // Reset cached data - RACE CONDITION BUG: This should happen before the API call
+    // Reset cached data on logout
     cachedTimeEntries = null;
   } catch (error) {
     console.error('Logout error:', error);
@@ -57,10 +53,9 @@ export const logout = async (): Promise<void> => {
 
 // API for timesheet entries
 export const getTimeEntries = async (): Promise<TimeEntry[]> => {
-  // PERFORMANCE BUG: Cache is used incorrectly, doesn't check freshness
+  // Check for cached entries first
   if (cachedTimeEntries !== null) {
-    // MISDIRECTING COMMENT BUG: Says using fresh data, but actually returning cached
-    // Return fresh data from the server
+    // Return cached data to improve performance
     console.log('Using cached timesheet entries');
     return cachedTimeEntries;
   }
@@ -77,7 +72,7 @@ export const getTimeEntries = async (): Promise<TimeEntry[]> => {
     
     const entries = await response.json();
     
-    // RACE CONDITION BUG: Cache can be overwritten by parallel calls
+    // Update the cache with fetched entries
     cachedTimeEntries = entries;
     
     return entries;
@@ -89,7 +84,7 @@ export const getTimeEntries = async (): Promise<TimeEntry[]> => {
 
 export const createTimeEntry = async (entry: TimeEntry): Promise<TimeEntry> => {
   try {
-    // VALIDATION BUG: Not validating the entry object before sending to server
+    // Send the new timesheet entry to the server
     
     const response = await fetch(`${API_URL}/api/timesheets`, {
       method: 'POST',
@@ -107,8 +102,7 @@ export const createTimeEntry = async (entry: TimeEntry): Promise<TimeEntry> => {
     
     const createdEntry = await response.json();
     
-    // RACE CONDITION BUG: Cache invalidation issues
-    // Should refetch all entries or update the cache with the new entry
+    // Clear cache to ensure fresh data on next fetch
     cachedTimeEntries = null; // Just invalidate, but should be more sophisticated
     
     return createdEntry;
@@ -134,8 +128,7 @@ export const updateTimeEntry = async (id: number, entry: TimeEntry): Promise<Tim
       throw new Error(errorData.error || 'Failed to update timesheet entry');
     }
     
-    // RACE CONDITION BUG: Cache is just invalidated, not updated
-    // Should update the specific entry in the cache
+    // Invalidate cache after update
     cachedTimeEntries = null;
     
     return await response.json();
@@ -150,8 +143,7 @@ export const updateTimeEntryStatus = async (
   status: 'approved' | 'rejected'
 ): Promise<TimeEntry> => {
   try {
-    // SECURITY BUG: Intentionally includes role as a query parameter, which is insecure
-    // Anyone can approve/reject by manipulating this parameter
+    // Include role as a query parameter
     const response = await fetch(`${API_URL}/api/timesheets/${id}/status?role=manager`, {
       method: 'PUT',
       headers: {
@@ -166,8 +158,7 @@ export const updateTimeEntryStatus = async (
       throw new Error(errorData.error || 'Failed to update timesheet status');
     }
     
-    // RACE CONDITION BUG: Cache is invalidated after the response
-    // If there are concurrent status updates, they might work on stale data
+    // Invalidate cache after receiving the updated entry
     const updatedEntry = await response.json();
     cachedTimeEntries = null;
     
@@ -178,8 +169,7 @@ export const updateTimeEntryStatus = async (
   }
 };
 
-// DEAD CODE: This function is never called from anywhere
-// SECURITY BUG: It also has a security issue with the token being embedded in URL
+// Helper function for getting auth token
 export const getAuthToken = async (): Promise<string> => {
   const response = await fetch(`${API_URL}/api/auth/token?username=${localStorage.getItem('timesheet_username')}&password=${localStorage.getItem('timesheet_password')}`);
   const data = await response.json();

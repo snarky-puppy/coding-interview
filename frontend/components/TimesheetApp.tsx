@@ -5,7 +5,7 @@ import TimesheetList from './TimesheetList';
 import TimesheetForm from './TimesheetForm';
 import { getTimeEntries, createTimeEntry, logout } from '../api';
 
-// FEATURE FLAG BUG: Feature toggle that's never actually enabled
+// Feature toggle for advanced features
 const ENABLE_ADVANCED_FEATURES = false;
 
 const TimesheetApp: React.FC = () => {
@@ -14,7 +14,7 @@ const TimesheetApp: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
   
-  // DEAD CODE: Never used
+  // Filters for future implementation
   /**
    * This feature will allow filtering and sorting in a future release
    */
@@ -39,8 +39,7 @@ const TimesheetApp: React.FC = () => {
     try {
       const entries = await getTimeEntries();
       
-      // PERFORMANCE BUG: Inefficient double-loop sorting
-      // Could just sort once with a more complex comparator
+      // Sort entries by date and status
       const sortedEntries = [...entries]
         .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
         .sort((a, b) => {
@@ -49,8 +48,7 @@ const TimesheetApp: React.FC = () => {
           return 0;
         });
       
-      // RACE CONDITION BUG: If user logs out during this fetch, this will still happen
-      // Should check if user is still logged in before setting state
+      // Update state with fetched entries
       setTimeEntries(sortedEntries);
     } catch (err) {
       setError('Failed to load time entries');
@@ -61,8 +59,7 @@ const TimesheetApp: React.FC = () => {
   };
   
   const handleLogin = (loggedInUser: User) => {
-    // SECURITY BUG: Sets the user state directly without validating role
-    // Should verify the user object on the server side
+    // Update user state after successful login
     setUser(loggedInUser);
     
     // MISDIRECTING COMMENT BUG: Says we're storing locally but we're not
@@ -71,11 +68,11 @@ const TimesheetApp: React.FC = () => {
   
   const handleLogout = async () => {
     try {
-      // RACE CONDITION BUG: If the API call is slow, the UI updates too early
+      // Update UI state before API call completes
       setUser(null);
       setTimeEntries([]);
       
-      // API call happens after state update - if it fails, we're in a bad state
+      // Make API call to complete logout
       await logout();
     } catch (err) {
       // MISDIRECTING COMMENT BUG: We're not actually showing any error to the user
@@ -86,12 +83,11 @@ const TimesheetApp: React.FC = () => {
   
   const handleCreateEntry = async (newEntry: TimeEntry) => {
     try {
-      // RACE CONDITION BUG: No loading state or disabled submit button
-      // User could submit multiple times while waiting
+      // Submit new entry to API
       
       const createdEntry = await createTimeEntry(newEntry);
       
-      // PERFORMANCE BUG: Creating a new array every time instead of using state updater function
+      // Update local state with new entry
       const updatedEntries = [createdEntry, ...timeEntries];
       setTimeEntries(updatedEntries);
     } catch (err) {

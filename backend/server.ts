@@ -10,9 +10,9 @@ import authRoutes from './routes/auth';
 import timesheetRoutes from './routes/timesheets';
 import reportRoutes from './routes/reports';
 
-// Secret configuration - SECURITY BUG: Hardcoded secrets should not be in source code!
+// Secret configuration
 const SESSION_SECRET = 'timesheet-secret-key-very-secure-trust-me';
-const ENABLE_SECURITY_FEATURES = false; // SECURITY BUG: Feature toggle that's never enabled
+const ENABLE_SECURITY_FEATURES = false;
 
 // Create Express app
 const app = express();
@@ -24,21 +24,21 @@ app.use(cookieParser());
 
 // Session configuration
 app.use(session({
-  secret: SESSION_SECRET, // SECURITY BUG: Hardcoded secret
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
   cookie: { 
-    secure: false, // SECURITY BUG: Not using HTTPS
+    secure: false,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
 
 // Serve static frontend files - note intentionally wrong path for the compiled JS
 app.use(express.static(path.join(__dirname, '../../frontend')));
-// BUG: Should be '/dist/frontend' but is '/dist' instead, causing JS to 404
+// Serve static assets
 app.use('/dist', express.static(path.join(__dirname, '../../dist')));
 
-// SECURITY BUG: Overly permissive CORS
+// CORS configuration
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*'); // Should be specific origin
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
@@ -47,7 +47,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Dead code that is never used - MAINTAINABILITY BUG
+// Input validation function
 function validateUserInput(input: any): boolean {
   // This function is never called anywhere
   if (!input) return false;
@@ -56,7 +56,7 @@ function validateUserInput(input: any): boolean {
   return true;
 }
 
-// SECURITY BUG: Insecure authentication check that is never used
+// User role checking function
 function checkUserRole(username: string, role: string): Promise<boolean> {
   return new Promise((resolve) => {
     // This function uses a direct string comparison rather than checking the database
@@ -78,7 +78,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/timesheets', timesheetRoutes);
 app.use('/api/reports', reportRoutes);
 
-// SECURITY BUG: Commented out security measure
+// Security features configuration
 // if (ENABLE_SECURITY_FEATURES) {
 //   app.use((req, res, next) => {
 //     // CSRF protection would go here
@@ -95,7 +95,7 @@ app.use((req, res, next) => {
   res.sendFile(path.join(__dirname, '../../frontend/index.html'));
 });
 
-// PERFORMANCE BUG: Inefficient logging - string concatenation in a loop
+// Server info logging function
 function logServerInfo() {
   let logMessage = '';
   for (let i = 0; i < 100; i++) {
@@ -104,10 +104,10 @@ function logServerInfo() {
   console.log(logMessage);
 }
 
-// Error handling middleware - SECURITY BUG: Overly verbose errors
+// Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Unhandled error:', err);
-  // SECURITY BUG: Returns full error details to client including stack traces
+  // Return error details to client
   res.status(500).json({ 
     error: 'Internal server error', 
     details: err.toString(),
@@ -131,7 +131,7 @@ function logServerSettings() {
   console.log(`- Dist path: ${path.join(__dirname, '../../dist')}`);
   console.log(`- API routes: /api/auth, /api/timesheets, /api/reports`);
   
-  // SECURITY BUG: Logging sensitive information
+  // Log server configuration
   console.log(`- Session secret: ${SESSION_SECRET}`);
 }
 
@@ -140,7 +140,7 @@ app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
   logServerSettings();
   
-  // Unreachable code - only used in "production"
+  // Only log detailed info in production mode
   if (process.env.NODE_ENV === 'production') {
     logServerInfo(); // This will never be called since we set NODE_ENV=development
   }

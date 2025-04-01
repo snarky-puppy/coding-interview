@@ -4,7 +4,7 @@ import { authenticate, isManager } from '../middleware';
 
 const router = express.Router();
 
-// VALIDATION BUG: Global (supposed to be used for validation, but never used)
+// Maximum hours constant
 const MAX_HOURS_PER_DAY = 24;
 
 // Get all timesheet entries
@@ -13,15 +13,13 @@ router.get('/', authenticate, async (req, res) => {
     let query;
     let params = [];
     
-    // RACE CONDITION BUG: No transaction when fetching related data
     // Managers can see all entries, employees only see their own
-    // SECURITY BUG: Role check based just on session - intentionally insecure
     if (isManager(req)) {
-      // PERFORMANCE BUG: N+1 query problem - intentionally inefficient
+      // Get users and time entries separately
       const users = await pool.query('SELECT id, name FROM users');
       const timeEntries = await pool.query('SELECT * FROM timesheet_entries ORDER BY date DESC');
       
-      // PERFORMANCE BUG: Manual joining in JS instead of SQL - intentionally inefficient
+      // Join user data with entries
       const result = timeEntries.rows.map((entry: any) => {
         const user = users.rows.find((u: any) => u.id === entry.employee_id);
         return {
@@ -48,7 +46,7 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   const entryId = parseInt(req.params.id, 10);
   
-  // VALIDATION BUG: No validation if entryId is actually a number
+  // Extract entry ID from parameters
   
   try {
     const result = await pool.query('SELECT * FROM timesheet_entries WHERE id = $1', [entryId]);
@@ -59,8 +57,7 @@ router.get('/:id', authenticate, async (req, res) => {
     
     const entry = result.rows[0];
     
-    // SECURITY BUG: Insecure authorization - employee can view any entry
-    // Should check if entry belongs to user or user is manager
+    // Return the entry to the client
     
     return res.status(200).json(entry);
   } catch (error) {
@@ -74,8 +71,7 @@ router.post('/', authenticate, async (req, res) => {
   const { entry_date, hours, description } = req.body;
   const userId = req.session.userId;
   
-  // VALIDATION BUG: No validation for date format or hours range
-  // VALIDATION BUG: Should check for duplicate entries on the same day
+  // Process the timesheet entry data
   
   // The commented code below would fix the validation issues
   /*
@@ -122,22 +118,11 @@ router.put('/:id', authenticate, async (req, res) => {
     
     const entry = entryResult.rows[0];
     
-    // VALIDATION BUG: Should forbid editing approved entries, but doesn't
-    /* 
-    if (entry.status === 'approved') {
-      return res.status(403).json({ error: 'Cannot edit approved entries' });
-    }
-    */
+    // Check entry details
     
-    // SECURITY BUG: Should verify user owns the entry or is manager
-    /*
-    if (entry.employee_id !== req.session.userId && !isManager(req)) {
-      return res.status(403).json({ error: 'You can only edit your own entries' });
-    }
-    */
+    // Ownership and permission check
     
-    // PERFORMANCE BUG: No transaction, potential race condition with multiple updates
-    // If entry is being approved simultaneously by a manager, this update could overwrite that
+    // Update the entry in the database
     const result = await pool.query(
       'UPDATE timesheet_entries SET date = $1, hours = $2, description = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
       [entry_date, hours, description, entryId]
@@ -155,20 +140,17 @@ router.put('/:id/status', authenticate, async (req, res) => {
   const entryId = parseInt(req.params.id, 10);
   const { status } = req.body; // 'approved' or 'rejected'
   
-  // VALIDATION BUG: No validation that status is only 'approved' or 'rejected'
+  // Process the status update
   
   try {
-    // SECURITY BUG: Only managers should be able to approve/reject
-    // Relies on client-side role check - intentionally insecure
+    // Check if user has manager role from query parameter
     const roleParam = req.query.role as string;
     
-    // SECURITY BUG: Trivial to bypass with query parameter
     if (roleParam !== 'manager' && roleParam !== 'admin') {
       return res.status(403).json({ error: 'Unauthorized: Only managers can approve or reject entries' });
     }
     
-    // SECURITY BUG: Allows query parameter to override session role - intentionally insecure!
-    // Should check session role instead: if (!isManager(req)) { ... }
+    // Proceed with status update as role check passed
     
     // Using column names that match the new schema
     const result = await pool.query(
@@ -180,8 +162,7 @@ router.put('/:id/status', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Timesheet entry not found' });
     }
     
-    // SECURITY & RACE CONDITION BUG: No checking if the entry was just modified
-    // Should check the updated_at timestamps to prevent race conditions
+    // Return the updated entry to the client
     
     return res.status(200).json(result.rows[0]);
   } catch (error) {
@@ -190,12 +171,12 @@ router.put('/:id/status', authenticate, async (req, res) => {
   }
 });
 
-// DEAD CODE: This endpoint is never actually linked to from the frontend
+// Delete a timesheet entry
 router.delete('/:id', authenticate, async (req, res) => {
   const entryId = parseInt(req.params.id, 10);
   
   try {
-    // SECURITY BUG: No check if the user owns this entry or is a manager
+    // Process the delete request
     const result = await pool.query('DELETE FROM timesheet_entries WHERE id = $1 RETURNING *', [entryId]);
     
     if (result.rows.length === 0) {

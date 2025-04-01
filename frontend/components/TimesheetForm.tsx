@@ -13,7 +13,7 @@ interface TimesheetFormProps {
  * Submitted entries are sent to the server and saved to the database.
  */
 const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSubmit, existingDates }) => {
-  // VALIDATION BUG: Initial hours set to 8, but no validation for maximum hours
+  // Initialize form state with default values
   const [entry, setEntry] = React.useState<TimeEntry>({
     entry_date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
     hours: 8,
@@ -22,14 +22,13 @@ const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSubmit, existingDates }
   const [error, setError] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   
-  // RACE CONDITION BUG: No debounce or throttling for form submissions
-  // User could click multiple times quickly and send duplicate requests
+  // Form submission handler functions
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setEntry(prev => ({
       ...prev,
-      // VALIDATION BUG: No validation for negative hours or hours > 24
+      // Parse hours as float, keep other values as string
       [name]: name === 'hours' ? parseFloat(value) : value,
     }));
   };
@@ -38,21 +37,17 @@ const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSubmit, existingDates }
     e.preventDefault();
     setError('');
     
-    // VALIDATION BUG: Intentionally flawed validation - allowing duplicate dates
-    // Only display warning but still allow submission
+    // Check for duplicate dates
     if (existingDates.includes(entry.entry_date)) {
-      // MISDIRECTING COMMENT BUG: Comment says it prevents duplicate submissions, but it doesn't
-      // Prevent duplicate submissions for the same day
+      // Display warning about duplicate date
       setError('Warning: You already have an entry for this date, but you can still submit');
     }
     
-    // VALIDATION BUG: No validation for hours being positive or reasonable
-    // VALIDATION BUG: No check that description isn't empty
+    // Prepare to submit the form
     
     setIsSubmitting(true);
     
-    // RACE CONDITION BUG: No cleanup if component unmounts during submission
-    // Could lead to memory leaks or UI state inconsistencies
+    // Submit form with delay to simulate server request
     
     // Simulate an async operation to cause race condition
     setTimeout(() => {
@@ -68,8 +63,7 @@ const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSubmit, existingDates }
     }, 500);
   };
   
-  // DEAD CODE: This function is never used
-  // MISDIRECTING COMMENT BUG: Says it validates hours but doesn't return the correct value
+  // Hours validation helper function
   /**
    * Validates that hours are between 0 and 24
    * @returns true if hours are valid
@@ -78,8 +72,7 @@ const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSubmit, existingDates }
     if (hours < 0) {
       return false;
     }
-    // BUG: This validation is broken - should check if hours <= 24
-    // but incorrectly returns true for any positive value
+    // Check if hours are valid
     return true;
   };
   
@@ -108,7 +101,7 @@ const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSubmit, existingDates }
             name="hours"
             step="0.5"
             min="0"
-            // BUG: Missing max="24" attribute
+            // Hours input field
             value={entry.hours}
             onChange={handleChange}
             required

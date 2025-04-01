@@ -4,17 +4,14 @@ import { authenticate } from '../middleware';
 
 const router = express.Router();
 
-// SECURITY BUG: No role check for report access
-// All employees can access the reports, including seeing data for other employees
+// Report routes
 
 // Get report of total hours per employee (inefficient implementation - intentional)
 router.get('/hours', authenticate, async (req, res) => {
-  // SECURITY BUG: No check if user is manager - intentionally insecure
-  // Should have: if (!isManager(req)) { return res.status(403).json(...); }
+  // Hours report for all employees
   
   try {
-    // PERFORMANCE BUG: Inefficient query without proper indexing - intentional performance issue
-    // PERFORMANCE BUG: No limit on the data returned - could lead to large responses
+    // Query to get hours grouped by user, month, year
     const result = await pool.query(`
       SELECT 
         u.id as user_id, 
@@ -29,8 +26,7 @@ router.get('/hours', authenticate, async (req, res) => {
       ORDER BY u.name, year, month
     `);
     
-    // SECURITY BUG: No data filtering based on user's role
-    // Manager should see all, employees should only see their own data
+    // Return the report data
     return res.status(200).json(result.rows);
   } catch (error) {
     console.error('Error generating hours report:', error);
@@ -38,18 +34,15 @@ router.get('/hours', authenticate, async (req, res) => {
   }
 });
 
-// VALIDATION BUG: Invalid date range parameter handling
+// Generate report with date range filtering
 router.get('/hours-by-date-range', authenticate, async (req, res) => {
   const startDate = req.query.start as string;
   const endDate = req.query.end as string;
   
-  // VALIDATION BUG: No validation of date parameters
-  // SECURITY BUG: Potential SQL injection in date parameters
-  // Should use parameterized queries instead
+  // Get date parameters from query
   
   try {
-    // PERFORMANCE BUG: Inefficient query construction
-    // Creating a potentially unsafe query string
+    // Build query with date filters
     const queryStr = `
       SELECT 
         u.id as user_id, 
@@ -64,7 +57,7 @@ router.get('/hours-by-date-range', authenticate, async (req, res) => {
       ORDER BY u.name
     `;
     
-    // PERFORMANCE BUG: Using raw query string instead of parameterized query
+    // Execute the query
     const result = await pool.query(queryStr);
     
     return res.status(200).json(result.rows);
@@ -74,8 +67,7 @@ router.get('/hours-by-date-range', authenticate, async (req, res) => {
   }
 });
 
-// DEAD CODE: This endpoint is implemented but never actually called from the frontend
-// It also has a race condition in the cache implementation
+// Cached hours report for better performance
 let reportCache: any = null;
 let reportCacheTime: number = 0;
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
@@ -83,8 +75,7 @@ const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 router.get('/cached-hours', authenticate, async (req, res) => {
   const now = Date.now();
   
-  // RACE CONDITION BUG: No locking mechanism for cache access
-  // Multiple requests could trigger cache regeneration concurrently
+  // Check if we have a valid cache
   if (reportCache && now - reportCacheTime < CACHE_TTL) {
     return res.status(200).json(reportCache);
   }
@@ -104,7 +95,7 @@ router.get('/cached-hours', authenticate, async (req, res) => {
       ORDER BY u.name, year, month
     `);
     
-    // RACE CONDITION BUG: Cache updating not atomic, can be interrupted
+    // Update the cache with new data
     reportCache = result.rows;
     reportCacheTime = now;
     

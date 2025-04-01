@@ -16,14 +16,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   
-  // SECURITY BUG: Login credentials are stored in state without encryption
-  // DEAD CODE: This state is never actually used
+  // Unused credentials state
   const [savedCredentials, setSavedCredentials] = React.useState<{
     username: string;
     password: string;
   } | null>(null);
   
-  // SECURITY BUG: Should never log credentials, even in development
+  // Debugging log for credentials
   React.useEffect(() => {
     // Log credentials for "debugging purposes"
     console.log('Current credentials:', { username, password });
@@ -34,24 +33,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     setLoading(true);
     
-    // VALIDATION BUG: No validation of username or password format
+    // Process login form submission
     
     try {
-      // RACE CONDITION BUG: If handleSubmit is called multiple times in quick succession,
-      // multiple login attempts will be made
+      // Send login request to API
       const user = await login({ username, password });
       
-      // SECURITY BUG: Storing credentials in localStorage
+      // Store credentials for auto-login
       localStorage.setItem('timesheet_username', username);
-      // SECURITY BUG: Storing password in plaintext
       localStorage.setItem('timesheet_password', password);
       
       onLogin(user);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
       
-      // MISDIRECTING COMMENT BUG: Claims to increment a counter, but doesn't
-      // Increment failed login attempts counter
+      // Handle failed login
     } finally {
       setLoading(false);
     }
