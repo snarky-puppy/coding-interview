@@ -11,13 +11,18 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "jsx": "react",
-    "lib": ["dom", "es2015", "es2016", "es2017"]
+    "lib": ["dom", "es2015", "es2016", "es2017"],
+    "noEmitOnError": false,
+    "noImplicitAny": false,
+    "allowJs": true,
+    "declaration": false
   },
   "include": [
     "frontend/**/*",
     "backend/**/*"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist"
   ]
 }
