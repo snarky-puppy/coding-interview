@@ -12,6 +12,17 @@
   "containerEnv": {
     "DATABASE_URL": "postgres://postgres:postgres@localhost:5432/timesheet"
   },
-  "postCreateCommand": "echo 'Remember to manually seed the database with: npm run db:seed'",
-  "remoteUser": "node"
+  "postCreateCommand": "echo '✅ Remember to manually seed the database with: npm run db:seed'",
+  "remoteUser": "node",
+  // Uncomment this to enable debugging
+  // "runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
+  // This setting is to prevent automatic format on save that could break legacy code formatting
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": false,
+        "typescript.tsdk": "node_modules/typescript/lib"
+      }
+    }
+  }
 }
