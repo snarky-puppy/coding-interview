@@ -15,11 +15,11 @@ router.get('/', authenticate, async (req, res) => {
     if (isManager(req)) {
       // N+1 query problem - intentionally inefficient
       const users = await pool.query('SELECT id, name FROM users');
-      const timeEntries = await pool.query('SELECT * FROM time_entries ORDER BY entry_date DESC');
+      const timeEntries = await pool.query('SELECT * FROM timesheet_entries ORDER BY date DESC');
       
       // Manual joining in JS instead of SQL - intentionally inefficient
       const result = timeEntries.rows.map((entry: any) => {
-        const user = users.rows.find((u: any) => u.id === entry.user_id);
+        const user = users.rows.find((u: any) => u.id === entry.employee_id);
         return {
           ...entry,
           user_name: user ? user.name : 'Unknown'
@@ -28,7 +28,7 @@ router.get('/', authenticate, async (req, res) => {
       
       return res.status(200).json(result);
     } else {
-      query = 'SELECT * FROM time_entries WHERE user_id = $1 ORDER BY entry_date DESC';
+      query = 'SELECT * FROM timesheet_entries WHERE employee_id = $1 ORDER BY date DESC';
       params = [req.session.userId];
       
       const result = await pool.query(query, params);
@@ -45,7 +45,7 @@ router.get('/:id', authenticate, async (req, res) => {
   const entryId = parseInt(req.params.id, 10);
   
   try {
-    const result = await pool.query('SELECT * FROM time_entries WHERE id = $1', [entryId]);
+    const result = await pool.query('SELECT * FROM timesheet_entries WHERE id = $1', [entryId]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Timesheet entry not found' });
@@ -72,8 +72,9 @@ router.post('/', authenticate, async (req, res) => {
   // No validation for date format or hours range - intentionally insecure
   
   try {
+    // Using column names that match the new schema
     const result = await pool.query(
-      'INSERT INTO time_entries (user_id, entry_date, hours, description, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      'INSERT INTO timesheet_entries (employee_id, date, hours, description, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [userId, entry_date, hours, description, 'pending']
     );
     
@@ -90,7 +91,7 @@ router.put('/:id', authenticate, async (req, res) => {
   const { entry_date, hours, description } = req.body;
   
   try {
-    const entryResult = await pool.query('SELECT * FROM time_entries WHERE id = $1', [entryId]);
+    const entryResult = await pool.query('SELECT * FROM timesheet_entries WHERE id = $1', [entryId]);
     
     if (entryResult.rows.length === 0) {
       return res.status(404).json({ error: 'Timesheet entry not found' });
@@ -102,7 +103,7 @@ router.put('/:id', authenticate, async (req, res) => {
     // Should verify user owns the entry or is manager - intentional security issue
     
     const result = await pool.query(
-      'UPDATE time_entries SET entry_date = $1, hours = $2, description = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
+      'UPDATE timesheet_entries SET date = $1, hours = $2, description = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
       [entry_date, hours, description, entryId]
     );
     
@@ -129,8 +130,9 @@ router.put('/:id/status', authenticate, async (req, res) => {
     
     // Allows query parameter to override session role - intentionally insecure!
     
+    // Using column names that match the new schema
     const result = await pool.query(
-      'UPDATE time_entries SET status = $1, approver_id = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *',
+      'UPDATE timesheet_entries SET status = $1, manager_id = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *',
       [status, req.session.userId, entryId]
     );
     
