@@ -1,0 +1,17 @@
+{
+  "name": "Legacy Timesheet App",
+  "dockerFile": "Dockerfile",
+  "forwardPorts": [3000, 5432],
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "extensions": [
+    "dbaeumer.vscode-eslint",
+    "ms-vscode.vscode-typescript-tslint-plugin"
+  ],
+  "containerEnv": {
+    "DATABASE_URL": "postgres://postgres:postgres@localhost:5432/timesheet"
+  },
+  "postCreateCommand": "echo 'Remember to manually seed the database with: npm run db:seed'",
+  "remoteUser": "node"
+}
