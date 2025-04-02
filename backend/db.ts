@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 // Create a singleton database connection pool
 const pool = new Pool({
   user: 'postgres',
-  host: 'localhost',
+  host: 'postgres',
   database: 'timesheet',
   password: 'postgres',
   port: 5432,

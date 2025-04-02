@@ -1,11 +1,7 @@
-FROM node:12
+FROM node:18
 
 # Update and install basic tools and postgres client
 RUN apt-get update && apt-get install -y postgresql-client
-
-# Install old version of npm
-# DO NOT UPGRADE - breaks compatibility with our codebase
-RUN npm install -g npm@6.14.11
 
 # Create app directory
 WORKDIR /app
@@ -14,7 +10,7 @@ WORKDIR /app
 COPY package.json ./
 COPY package-lock.json* ./
 
-# Install dependencies - no package-lock 
+# Install dependencies - no package-lock
 # The --no-optional flag can be used if you encounter problems
 RUN npm install
 

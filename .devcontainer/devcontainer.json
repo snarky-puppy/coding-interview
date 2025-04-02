@@ -1,6 +1,8 @@
 {
   "name": "Legacy Timesheet App",
-  "dockerFile": "Dockerfile",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "devcontainer",
+  "workspaceFolder": "/app",
   "forwardPorts": [3000, 5432],
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash"
@@ -9,9 +11,6 @@
     "dbaeumer.vscode-eslint",
     "ms-vscode.vscode-typescript-tslint-plugin"
   ],
-  "containerEnv": {
-    "DATABASE_URL": "postgres://postgres:postgres@localhost:5432/timesheet"
-  },
   "postCreateCommand": "echo '✅ Remember to manually seed the database with: npm run db:seed'",
   "remoteUser": "node",
   // Uncomment this to enable debugging

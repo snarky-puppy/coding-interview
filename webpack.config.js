@@ -4,7 +4,7 @@ module.exports = {
   mode: 'development',
   entry: './frontend/app.tsx',
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'dist/frontend'),
     filename: 'app.js',
     publicPath: '/dist/',
   },
